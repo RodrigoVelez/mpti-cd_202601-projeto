@@ -40,17 +40,18 @@ Scripts entregues nesta etapa:
 
 | Script | Descrição |
 |--------|-----------|
-| [`datasus.py`](datasus.py) | Baixa arquivos DBC do FTP do DataSUS (SIM/CID-10) e converte para CSV. Cobre todos os 27 estados, de 2010 a 2024. |
-| [`ibge_populacao.py`](ibge_populacao.py) | Baixa ZIPs de projeções populacionais do IBGE via FTP do DataSUS, extrai os DBFs e converte para CSV. Período: 2010–2024. |
-| [`ibge_dados_municipios.py`](ibge_dados_municipios.py) | Coleta o cadastro completo de municípios via API REST do IBGE, grava o JSON bruto e o CSV tabular com colunas normalizadas. |
+| [`scripts/datasus.py`](scripts/datasus.py) | Baixa arquivos DBC do FTP do DataSUS (SIM/CID-10) e converte para CSV. Cobre todos os 27 estados, de 2010 a 2024. |
+| [`scripts/ibge_populacao.py`](scripts/ibge_populacao.py) | Baixa ZIPs de projeções populacionais do IBGE via FTP do DataSUS, extrai os DBFs e converte para CSV. Período: 2010–2024. |
+| [`scripts/ibge_dados_municipios.py`](scripts/ibge_dados_municipios.py) | Coleta o cadastro completo de municípios via API REST do IBGE, grava o JSON bruto e o CSV tabular com colunas normalizadas. |
 
 ## Estrutura do Repositório
 
 ```
 .
-├── datasus.py                  # Coleta do DataSUS (SIM/CID-10) via FTP
-├── ibge_populacao.py           # Coleta de população IBGE via FTP DataSUS
-├── ibge_dados_municipios.py    # Coleta do cadastro de municípios via API IBGE
+├── scripts/
+│   ├── datasus.py              # Coleta do DataSUS (SIM/CID-10) via FTP
+│   ├── ibge_populacao.py       # Coleta de população IBGE via FTP DataSUS
+│   └── ibge_dados_municipios.py# Coleta do cadastro de municípios via API IBGE
 ├── documentos/
 │   ├── Contexto_Projeto_Coencis_de_Dados.pdf
 │   └── Cronograma_Projeto_Ciencia_de_Dados.pdf
@@ -89,19 +90,19 @@ pip install pandas pyreaddbc dbfread
 
 **macOS / Linux**
 ```bash
-python3 datasus.py --sistema SIM && \
-python3 ibge_populacao.py && \
-python3 ibge_dados_municipios.py
+python3 scripts/datasus.py --sistema SIM && \
+python3 scripts/ibge_populacao.py && \
+python3 scripts/ibge_dados_municipios.py
 ```
 
 **Windows** (Prompt de Comando)
 ```bat
-python datasus.py --sistema SIM && python ibge_populacao.py && python ibge_dados_municipios.py
+python scripts/datasus.py --sistema SIM && python scripts/ibge_populacao.py && python scripts/ibge_dados_municipios.py
 ```
 
 **Windows** (PowerShell)
 ```powershell
-python datasus.py --sistema SIM; python ibge_populacao.py; python ibge_dados_municipios.py
+python scripts/datasus.py --sistema SIM; python scripts/ibge_populacao.py; python scripts/ibge_dados_municipios.py
 ```
 
 > O download do SIM para todos os estados e anos (2010–2024) pode demorar bastante, pois são ~375 arquivos DBC via FTP. Use `--estados` e `--anos` para limitar o escopo durante testes.
@@ -111,28 +112,28 @@ python datasus.py --sistema SIM; python ibge_populacao.py; python ibge_dados_mun
 **macOS / Linux**
 ```bash
 # Todos os estados, 2010–2024 (padrão)
-python3 datasus.py --sistema SIM
+python3 scripts/datasus.py --sistema SIM
 
 # Filtrar estados e anos específicos
-python3 datasus.py --sistema SIM --anos 2020 2021 2022 --estados SP RJ MG PB
+python3 scripts/datasus.py --sistema SIM --anos 2020 2021 2022 --estados SP RJ MG PB
 
 # Apenas converter DBCs já baixados (sem novo download)
-python3 datasus.py --sistema SIM --apenas-converter
+python3 scripts/datasus.py --sistema SIM --apenas-converter
 
 # Verificar consistência dos layouts de coluna entre os CSVs gerados
-python3 datasus.py --sistema SIM --validacao
+python3 scripts/datasus.py --sistema SIM --validacao
 
 # Listar todos os sistemas disponíveis no script
-python3 datasus.py --listar-sistemas
+python3 scripts/datasus.py --listar-sistemas
 ```
 
 **Windows**
 ```bat
-python datasus.py --sistema SIM
-python datasus.py --sistema SIM --anos 2020 2021 2022 --estados SP RJ MG PB
-python datasus.py --sistema SIM --apenas-converter
-python datasus.py --sistema SIM --validacao
-python datasus.py --listar-sistemas
+python scripts/datasus.py --sistema SIM
+python scripts/datasus.py --sistema SIM --anos 2020 2021 2022 --estados SP RJ MG PB
+python scripts/datasus.py --sistema SIM --apenas-converter
+python scripts/datasus.py --sistema SIM --validacao
+python scripts/datasus.py --listar-sistemas
 ```
 
 Saída: `dados/SIM/dbc/YYYY/DO{UF}{YYYY}.dbc` → `dados/SIM/csv/YYYY/DO{UF}{YYYY}.csv`
@@ -141,18 +142,18 @@ Saída: `dados/SIM/dbc/YYYY/DO{UF}{YYYY}.dbc` → `dados/SIM/csv/YYYY/DO{UF}{YYY
 
 **macOS / Linux**
 ```bash
-python3 ibge_populacao.py                        # todos os anos, 2010–2024 (padrão)
-python3 ibge_populacao.py --anos 2020 2021 2022  # anos específicos
-python3 ibge_populacao.py --apenas-converter     # sem novo download
-python3 ibge_populacao.py --validacao            # verificar consistência
+python3 scripts/ibge_populacao.py                        # todos os anos, 2010–2024 (padrão)
+python3 scripts/ibge_populacao.py --anos 2020 2021 2022  # anos específicos
+python3 scripts/ibge_populacao.py --apenas-converter     # sem novo download
+python3 scripts/ibge_populacao.py --validacao            # verificar consistência
 ```
 
 **Windows**
 ```bat
-python ibge_populacao.py
-python ibge_populacao.py --anos 2020 2021 2022
-python ibge_populacao.py --apenas-converter
-python ibge_populacao.py --validacao
+python scripts/ibge_populacao.py
+python scripts/ibge_populacao.py --anos 2020 2021 2022
+python scripts/ibge_populacao.py --apenas-converter
+python scripts/ibge_populacao.py --validacao
 ```
 
 Saída: `dados/ibge_populacao/csv/YYYY/POP{YY}.csv`
@@ -161,14 +162,14 @@ Saída: `dados/ibge_populacao/csv/YYYY/POP{YY}.csv`
 
 **macOS / Linux**
 ```bash
-python3 ibge_dados_municipios.py                       # todos os municípios (5.570)
-python3 ibge_dados_municipios.py --estados PB PE CE RN # filtrar por estado(s)
+python3 scripts/ibge_dados_municipios.py                       # todos os municípios (5.570)
+python3 scripts/ibge_dados_municipios.py --estados PB PE CE RN # filtrar por estado(s)
 ```
 
 **Windows**
 ```bat
-python ibge_dados_municipios.py
-python ibge_dados_municipios.py --estados PB PE CE RN
+python scripts/ibge_dados_municipios.py
+python scripts/ibge_dados_municipios.py --estados PB PE CE RN
 ```
 
 Saída: `dados/ibge_dados_municipios/json/municipios.json` e `dados/ibge_dados_municipios/csv/municipios.csv`
