@@ -1,3 +1,6 @@
+# Dados brutos e convertidos (gerados localmente pelos scripts de coleta)
+dados/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
