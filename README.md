@@ -108,12 +108,12 @@ pip install pandas pyreaddbc dbfread
 
 O `exec.py` executa os três scripts da camada Bronze em sequência (DataSUS SIM → municípios IBGE → população IBGE) e repassa automaticamente cada argumento apenas aos scripts que o aceitam:
 
-| Argumento | `datasus.py` | `ibge_populacao.py` | `ibge_dados_municipios.py` |
+| Argumento | datasus.py | ibge_populacao.py | ibge_dados_municipios.py |
 |-----------|:---:|:---:|:---:|
-| `--anos` | ✓ | ✓ | — |
-| `--estados` | ✓ | — | ✓ |
-| `--apenas-converter` | ✓ | ✓ | — |
-| `--validacao` | ✓ | ✓ | — |
+| --anos | ✓ | ✓ | — |
+| --estados | ✓ | — | ✓ |
+| --apenas-converter | ✓ | ✓ | — |
+| --validacao | ✓ | ✓ | — |
 
 **macOS / Linux**
 ```bash
