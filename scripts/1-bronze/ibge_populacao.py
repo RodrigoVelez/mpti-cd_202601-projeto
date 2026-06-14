@@ -27,7 +27,7 @@ from dbfread import DBF
 # ─── Configuração ─────────────────────────────────────────────────────────────
 FTP_HOST    = 'ftp.datasus.gov.br'
 FTP_PATH    = '/dissemin/publicos/IBGE/POPSVS/'
-BASE_DIR    = Path('dados') / 'ibge_populacao'
+BASE_DIR    = Path('dados') / '1-bronze' / 'ibge_populacao'
 ANO_INICIO  = 2010
 ANO_FIM     = 2024
 

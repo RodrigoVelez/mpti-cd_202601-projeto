@@ -25,7 +25,7 @@ import pandas as pd
 
 # ─── Configuração ─────────────────────────────────────────────────────────────
 API_URL  = 'https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome'
-BASE_DIR = Path('dados') / 'ibge_dados_municipios'
+BASE_DIR = Path('dados') / '1-bronze' / 'ibge_dados_municipios'
 
 # ─── API ──────────────────────────────────────────────────────────────────────
 

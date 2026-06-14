@@ -61,7 +61,7 @@ SISTEMAS = {
     },
 }
 
-BASE_DIR = Path('dados')
+BASE_DIR = Path('dados') / '1-bronze'
 ANO_INICIO = 2010
 ANO_FIM = 2024
 
