@@ -44,7 +44,7 @@ Scripts entregues nesta etapa:
 |--------|-----------|
 | [`scripts/exec.py`](scripts/exec.py) | Orquestrador — executa os quatro scripts da camada Bronze em sequência. |
 | [`scripts/1-bronze/datasus_dados.py`](scripts/1-bronze/datasus_dados.py) | Baixa arquivos DBC do FTP do DataSUS (SIM/CID-10) e converte para CSV. Cobre todos os 27 estados, de 2010 a 2024. |
-| [`scripts/1-bronze/datasus_cid10.py`](scripts/1-bronze/datasus_cid10.py) | Baixa tabelas de referência CID-10 em duas fontes selecionáveis via `--fonte`: `v2008` (HTTP, padrão) e `ftp` (DATASUS FTP). |
+| [`scripts/1-bronze/datasus_cid10.py`](scripts/1-bronze/datasus_cid10.py) | Baixa tabelas de referência CID-10 de duas fontes via `--fonte`: `v2008` (HTTP) e `ftp` (DATASUS FTP). Por padrão, baixa as duas. |
 | [`scripts/1-bronze/ibge_dados_municipios.py`](scripts/1-bronze/ibge_dados_municipios.py) | Coleta o cadastro completo de municípios via API REST do IBGE, grava o JSON bruto e o CSV tabular com colunas normalizadas. |
 | [`scripts/1-bronze/ibge_populacao.py`](scripts/1-bronze/ibge_populacao.py) | Baixa ZIPs de projeções populacionais do IBGE via FTP do DataSUS, extrai os DBFs e converte para CSV. Período: 2010–2024. |
 
@@ -125,7 +125,7 @@ O `exec.py` executa os quatro scripts da camada Bronze em sequência (DataSUS SI
 | *--apenas-converter* | ✓ | ✓ | ✓ | — |
 | *--validacao* | ✓ | ✓ | ✓ | — |
 
-> O argumento `--fonte` do `datasus_cid10.py` não é repassado pelo `exec.py`. O orquestrador sempre usa o padrão `v2008`. Para usar a fonte `ftp` ou ambas, execute o script diretamente.
+> O argumento `--fonte` do `datasus_cid10.py` não é repassado pelo `exec.py`. O orquestrador usa o padrão do script, que é **baixar as duas fontes** (`v2008` e `ftp`). Para restringir a uma só, execute o script diretamente com `--fonte v2008` ou `--fonte ftp`.
 
 **macOS / Linux**
 ```bash
@@ -191,24 +191,19 @@ O script `datasus_cid10.py` suporta duas fontes independentes, selecionáveis pe
 
 | Valor | Fonte | Pasta de saída | Arquivos gerados |
 |-------|-------|----------------|------------------|
-| `v2008` *(padrão)* | HTTP — `www2.datasus.gov.br` | `dados/1-bronze/cid-10-datasus-v2008/` | 6 CSVs: capítulos, grupos, categorias, subcategorias, CID-O categorias, CID-O grupos |
+| `v2008` | HTTP — `www2.datasus.gov.br` | `dados/1-bronze/cid-10-datasus-v2008/` | 6 CSVs: capítulos, grupos, categorias, subcategorias, CID-O categorias, CID-O grupos |
 | `ftp` | FTP — `ftp.datasus.gov.br` | `dados/1-bronze/cid-10-ftp_datasus/` | 2 CSVs: CID10 (categorias+subcategorias) e CIDCAP10 (capítulos) |
 
-Os dois valores podem ser combinados na mesma chamada para baixar ambas as fontes de uma vez.
+**Padrão (sem `--fonte`):** baixa as duas fontes em sequência.
 
 **macOS / Linux**
 ```bash
-# Fonte v2008 — padrão, sem precisar passar --fonte
+# Ambas as fontes — padrão, sem precisar passar --fonte
 python3 scripts/1-bronze/datasus_cid10.py
 
-# Fonte v2008 — explícita
+# Restringir a uma só fonte
 python3 scripts/1-bronze/datasus_cid10.py --fonte v2008
-
-# Fonte FTP
 python3 scripts/1-bronze/datasus_cid10.py --fonte ftp
-
-# Ambas as fontes em sequência
-python3 scripts/1-bronze/datasus_cid10.py --fonte v2008 ftp
 
 # Sem novo download — reprocessa a partir dos arquivos já baixados
 python3 scripts/1-bronze/datasus_cid10.py --apenas-converter
@@ -225,7 +220,6 @@ python3 scripts/1-bronze/datasus_cid10.py --fonte v2008 ftp --validacao
 python scripts/1-bronze/datasus_cid10.py
 python scripts/1-bronze/datasus_cid10.py --fonte v2008
 python scripts/1-bronze/datasus_cid10.py --fonte ftp
-python scripts/1-bronze/datasus_cid10.py --fonte v2008 ftp
 python scripts/1-bronze/datasus_cid10.py --apenas-converter
 python scripts/1-bronze/datasus_cid10.py --fonte ftp --apenas-converter
 python scripts/1-bronze/datasus_cid10.py --fonte v2008 ftp --validacao

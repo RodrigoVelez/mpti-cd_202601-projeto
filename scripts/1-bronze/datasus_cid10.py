@@ -18,9 +18,9 @@ Suporta duas fontes de download, selecionáveis via --fonte:
       Formato bruto: DBF compactado
 
 Uso:
-    python3 datasus_cid10.py                          # fonte v2008 (padrão)
-    python3 datasus_cid10.py --fonte ftp              # fonte FTP
-    python3 datasus_cid10.py --fonte v2008 ftp        # ambas as fontes
+    python3 datasus_cid10.py                          # ambas as fontes (padrão)
+    python3 datasus_cid10.py --fonte v2008            # só fonte HTTP v2008
+    python3 datasus_cid10.py --fonte ftp              # só fonte FTP
     python3 datasus_cid10.py --apenas-converter       # sem download, só converte
     python3 datasus_cid10.py --fonte ftp --validacao  # layout dos CSVs da fonte ftp
 """
@@ -290,9 +290,9 @@ def main():
             '         categorias, subcategorias, CID-O). Padrão.\n'
             '  ftp    DBFs via FTP DATASUS — estrutura mais compacta.\n\n'
             'Exemplos:\n'
-            '  python3 datasus_cid10.py                         # fonte v2008 (padrão)\n'
+            '  python3 datasus_cid10.py                         # ambas as fontes (padrão)\n'
+            '  python3 datasus_cid10.py --fonte v2008           # só v2008\n'
             '  python3 datasus_cid10.py --fonte ftp             # só FTP\n'
-            '  python3 datasus_cid10.py --fonte v2008 ftp       # ambas as fontes\n'
             '  python3 datasus_cid10.py --fonte ftp --apenas-converter\n'
             '  python3 datasus_cid10.py --fonte v2008 --validacao\n'
             '  python3 datasus_cid10.py --fonte v2008 ftp --validacao\n'
@@ -302,11 +302,11 @@ def main():
         '--fonte',
         nargs='+',
         choices=FONTES_DISPONIVEIS,
-        default=['v2008'],
+        default=['v2008', 'ftp'],
         metavar='FONTE',
         help=(
             'Fonte(s) de download: v2008 e/ou ftp '
-            '(padrão: v2008). Pode informar múltiplos valores.'
+            '(padrão: ambas). Pode informar um único valor para restringir.'
         ),
     )
     parser.add_argument(

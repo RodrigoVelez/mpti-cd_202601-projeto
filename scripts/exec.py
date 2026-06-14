@@ -78,8 +78,8 @@ def main():
 
     anos_args     = ['--anos']            + [str(a) for a in args.anos] if args.anos else []
     estados_args  = ['--estados']         + args.estados                if args.estados else []
-    conv_args     = ['--apenas-converter']                               if args.apenas_converter else []
-    valid_args    = ['--validacao']                                      if args.validacao else []
+    conv_args     = ['--apenas-converter']                              if args.apenas_converter else []
+    valid_args    = ['--validacao']                                     if args.validacao else []
 
     # datasus_dados.py aceita: --sistema, --anos, --estados, --apenas-converter, --validacao
     run(BRONZE / 'datasus_dados.py', '--sistema', 'SIM', *anos_args, *estados_args, *conv_args, *valid_args)
