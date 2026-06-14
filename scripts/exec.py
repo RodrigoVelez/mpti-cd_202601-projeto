@@ -5,10 +5,10 @@ Executa os scripts de ingestão da camada Bronze em sequência.
 Os argumentos informados aqui são repassados automaticamente a cada script
 conforme o que cada um aceita:
 
-    --anos            → datasus.py, ibge_populacao.py
-    --estados         → datasus.py, ibge_dados_municipios.py
-    --apenas-converter→ datasus.py, ibge_populacao.py
-    --validacao       → datasus.py, ibge_populacao.py
+    --anos            → datasus_dados.py, ibge_populacao.py
+    --estados         → datasus_dados.py, ibge_dados_municipios.py
+    --apenas-converter→ datasus_dados.py, ibge_populacao.py, datasus_cid10.py
+    --validacao       → datasus_dados.py, ibge_populacao.py, datasus_cid10.py
 
 Uso:
     python3 scripts/exec.py
@@ -55,23 +55,23 @@ def main():
         nargs='+',
         type=int,
         metavar='ANO',
-        help='Anos a processar (padrão: 2010–2024). Repassado a datasus.py e ibge_populacao.py.',
+        help='Anos a processar (padrão: 2010–2024). Repassado a datasus_dados.py e ibge_populacao.py.',
     )
     parser.add_argument(
         '--estados',
         nargs='+',
         metavar='UF',
-        help='Siglas dos estados (padrão: todos os 27). Repassado a datasus.py e ibge_dados_municipios.py.',
+        help='Siglas dos estados (padrão: todos os 27). Repassado a datasus_dados.py e ibge_dados_municipios.py.',
     )
     parser.add_argument(
         '--apenas-converter',
         action='store_true',
-        help='Pula downloads e converte apenas arquivos já baixados. Repassado a datasus.py e ibge_populacao.py.',
+        help='Pula downloads e converte apenas arquivos já baixados. Repassado a datasus_dados.py e ibge_populacao.py.',
     )
     parser.add_argument(
         '--validacao',
         action='store_true',
-        help='Verifica consistência dos layouts de coluna. Repassado a datasus.py e ibge_populacao.py.',
+        help='Verifica consistência dos layouts de coluna. Repassado a datasus_dados.py, ibge_populacao.py e datasus_cid10.py.',
     )
 
     args = parser.parse_args()
@@ -81,14 +81,17 @@ def main():
     conv_args     = ['--apenas-converter']                               if args.apenas_converter else []
     valid_args    = ['--validacao']                                      if args.validacao else []
 
-    # datasus.py aceita: --sistema, --anos, --estados, --apenas-converter, --validacao
-    run(BRONZE / 'datasus.py', '--sistema', 'SIM', *anos_args, *estados_args, *conv_args, *valid_args)
+    # datasus_dados.py aceita: --sistema, --anos, --estados, --apenas-converter, --validacao
+    run(BRONZE / 'datasus_dados.py', '--sistema', 'SIM', *anos_args, *estados_args, *conv_args, *valid_args)
 
     # ibge_dados_municipios.py aceita: --estados
     run(BRONZE / 'ibge_dados_municipios.py', *estados_args)
 
     # ibge_populacao.py aceita: --anos, --apenas-converter, --validacao
     run(BRONZE / 'ibge_populacao.py', *anos_args, *conv_args, *valid_args)
+
+    # datasus_cid10.py aceita: --apenas-converter, --validacao
+    run(BRONZE / 'datasus_cid10.py', *conv_args, *valid_args)
 
 
 if __name__ == '__main__':

@@ -25,6 +25,8 @@ Identificar padrões e perfis de municípios brasileiros em relação à mortali
 | Fonte | Descrição | Acesso | Formato bruto |
 |-------|-----------|--------|---------------|
 | **DataSUS / SIM** | Sistema de Informações sobre Mortalidade — declarações de óbito com causas por CID-10, por município, estado e ano | FTP `ftp.datasus.gov.br` | DBC |
+| **DataSUS / CID-10 v2008** | Tabelas de referência CID-10: capítulos, grupos, categorias, subcategorias e CID-O | HTTP `www2.datasus.gov.br` | ZIP/CSV |
+| **DataSUS / CID-10 FTP** | Tabelas de referência CID-10 em DBF: categorias+subcategorias e capítulos | FTP `ftp.datasus.gov.br` | DBF |
 | **IBGE / POPSVS** | Projeções populacionais por município, disponibilizadas via FTP do DataSUS | FTP `ftp.datasus.gov.br` | ZIP/DBF |
 | **IBGE API REST** | Cadastro oficial de municípios com código IBGE, microrregião, mesorregião e UF | API `servicodados.ibge.gov.br` | JSON |
 
@@ -40,8 +42,9 @@ Scripts entregues nesta etapa:
 
 | Script | Descrição |
 |--------|-----------|
-| [`scripts/exec.py`](scripts/exec.py) | Orquestrador — executa os três scripts da camada Bronze em sequência. |
-| [`scripts/1-bronze/datasus.py`](scripts/1-bronze/datasus.py) | Baixa arquivos DBC do FTP do DataSUS (SIM/CID-10) e converte para CSV. Cobre todos os 27 estados, de 2010 a 2024. |
+| [`scripts/exec.py`](scripts/exec.py) | Orquestrador — executa os quatro scripts da camada Bronze em sequência. |
+| [`scripts/1-bronze/datasus_dados.py`](scripts/1-bronze/datasus_dados.py) | Baixa arquivos DBC do FTP do DataSUS (SIM/CID-10) e converte para CSV. Cobre todos os 27 estados, de 2010 a 2024. |
+| [`scripts/1-bronze/datasus_cid10.py`](scripts/1-bronze/datasus_cid10.py) | Baixa tabelas de referência CID-10 em duas fontes selecionáveis via `--fonte`: `v2008` (HTTP, padrão) e `ftp` (DATASUS FTP). |
 | [`scripts/1-bronze/ibge_dados_municipios.py`](scripts/1-bronze/ibge_dados_municipios.py) | Coleta o cadastro completo de municípios via API REST do IBGE, grava o JSON bruto e o CSV tabular com colunas normalizadas. |
 | [`scripts/1-bronze/ibge_populacao.py`](scripts/1-bronze/ibge_populacao.py) | Baixa ZIPs de projeções populacionais do IBGE via FTP do DataSUS, extrai os DBFs e converte para CSV. Período: 2010–2024. |
 
@@ -62,7 +65,8 @@ Os scripts e dados seguem a arquitetura Medallion com três camadas:
 ├── scripts/
 │   ├── exec.py                      # Orquestrador — executa toda a camada Bronze
 │   ├── 1-bronze/
-│   │   ├── datasus.py               # Coleta SIM/CID-10 via FTP DataSUS
+│   │   ├── datasus_dados.py         # Coleta SIM via FTP DataSUS (óbitos por estado/ano)
+│   │   ├── datasus_cid10.py         # Coleta tabelas CID-10 (duas fontes via --fonte)
 │   │   ├── ibge_dados_municipios.py # Coleta cadastro de municípios via API IBGE
 │   │   └── ibge_populacao.py        # Coleta projeções populacionais via FTP DataSUS
 │   ├── 2-prata/                     # Scripts de limpeza e integração (próximas semanas)
@@ -75,6 +79,12 @@ Os scripts e dados seguem a arquitetura Medallion com três camadas:
     │   ├── SIM/
     │   │   ├── dbc/YYYY/            # Arquivos brutos do DataSUS por ano
     │   │   └── csv/YYYY/            # Declarações de óbito convertidas para CSV
+    │   ├── cid-10-datasus-v2008/    # CID-10 via HTTP (--fonte v2008, padrão)
+    │   │   ├── zip/                 # ZIP original baixado
+    │   │   └── csv/                 # 6 CSVs normalizados (utf-8-sig, separador vírgula)
+    │   ├── cid-10-ftp_datasus/      # CID-10 via FTP (--fonte ftp)
+    │   │   ├── dbf/                 # DBFs originais baixados do FTP
+    │   │   └── csv/                 # DBFs convertidos para CSV
     │   ├── ibge_dados_municipios/
     │   │   ├── json/                # Resposta bruta da API IBGE
     │   │   └── csv/                 # Cadastro de municípios em CSV
@@ -106,14 +116,16 @@ pip install pandas pyreaddbc dbfread
 
 ### Carregar todos os datasets de uma vez com exec.py
 
-O `exec.py` executa os três scripts da camada Bronze em sequência (DataSUS SIM → municípios IBGE → população IBGE) e repassa automaticamente cada argumento apenas aos scripts que o aceitam:
+O `exec.py` executa os quatro scripts da camada Bronze em sequência (DataSUS SIM → CID-10 → municípios IBGE → população IBGE) e repassa automaticamente cada argumento apenas aos scripts que o aceitam:
 
-| Argumento | datasus.py | ibge_populacao.py | ibge_dados_municipios.py |
-|-----------|:---:|:---:|:---:|
-| *--anos* | ✓ | ✓ | — |
-| *--estados* | ✓ | — | ✓ |
-| *--apenas-converter* | ✓ | ✓ | — |
-| *--validacao* | ✓ | ✓ | — |
+| Argumento | datasus_dados.py | datasus_cid10.py | ibge_populacao.py | ibge_dados_municipios.py |
+|-----------|:---:|:---:|:---:|:---:|
+| *--anos* | ✓ | — | ✓ | — |
+| *--estados* | ✓ | — | — | ✓ |
+| *--apenas-converter* | ✓ | ✓ | ✓ | — |
+| *--validacao* | ✓ | ✓ | ✓ | — |
+
+> O argumento `--fonte` do `datasus_cid10.py` não é repassado pelo `exec.py`. O orquestrador sempre usa o padrão `v2008`. Para usar a fonte `ftp` ou ambas, execute o script diretamente.
 
 **macOS / Linux**
 ```bash
@@ -140,38 +152,108 @@ python scripts/exec.py --validacao
 
 > O download do SIM para todos os estados e anos (2010–2024) pode demorar bastante, pois são ~375 arquivos DBC via FTP. Use `--estados` e `--anos` para reduzir o escopo durante testes.
 
-### 1. DataSUS — Mortalidade (SIM/CID-10)
+### 1. DataSUS — Mortalidade (SIM)
 
 **macOS / Linux**
 ```bash
 # Todos os estados, 2010–2024 (padrão)
-python3 scripts/1-bronze/datasus.py --sistema SIM
+python3 scripts/1-bronze/datasus_dados.py --sistema SIM
 
 # Filtrar estados e anos específicos
-python3 scripts/1-bronze/datasus.py --sistema SIM --anos 2020 2021 2022 --estados SP RJ MG PB
+python3 scripts/1-bronze/datasus_dados.py --sistema SIM --anos 2020 2021 2022 --estados SP RJ MG PB
 
 # Apenas converter DBCs já baixados (sem novo download)
-python3 scripts/1-bronze/datasus.py --sistema SIM --apenas-converter
+python3 scripts/1-bronze/datasus_dados.py --sistema SIM --apenas-converter
 
 # Verificar consistência dos layouts de coluna entre os CSVs gerados
-python3 scripts/1-bronze/datasus.py --sistema SIM --validacao
+python3 scripts/1-bronze/datasus_dados.py --sistema SIM --validacao
 
 # Listar todos os sistemas disponíveis no script
-python3 scripts/1-bronze/datasus.py --listar-sistemas
+python3 scripts/1-bronze/datasus_dados.py --listar-sistemas
 ```
 
 **Windows**
 ```bat
-python scripts/1-bronze/datasus.py --sistema SIM
-python scripts/1-bronze/datasus.py --sistema SIM --anos 2020 2021 2022 --estados SP RJ MG PB
-python scripts/1-bronze/datasus.py --sistema SIM --apenas-converter
-python scripts/1-bronze/datasus.py --sistema SIM --validacao
-python scripts/1-bronze/datasus.py --listar-sistemas
+python scripts/1-bronze/datasus_dados.py --sistema SIM
+python scripts/1-bronze/datasus_dados.py --sistema SIM --anos 2020 2021 2022 --estados SP RJ MG PB
+python scripts/1-bronze/datasus_dados.py --sistema SIM --apenas-converter
+python scripts/1-bronze/datasus_dados.py --sistema SIM --validacao
+python scripts/1-bronze/datasus_dados.py --listar-sistemas
 ```
 
 Saída: `dados/1-bronze/SIM/dbc/YYYY/DO{UF}{YYYY}.dbc` → `dados/1-bronze/SIM/csv/YYYY/DO{UF}{YYYY}.csv`
 
-### 2. IBGE — Cadastro de Municípios (API REST)
+### 2. DataSUS — Tabelas de Referência CID-10
+
+O script `datasus_cid10.py` suporta duas fontes independentes, selecionáveis pelo parâmetro `--fonte`. Cada fonte grava em uma pasta separada e pode ser usada isoladamente ou em conjunto.
+
+#### Parâmetro `--fonte`
+
+| Valor | Fonte | Pasta de saída | Arquivos gerados |
+|-------|-------|----------------|------------------|
+| `v2008` *(padrão)* | HTTP — `www2.datasus.gov.br` | `dados/1-bronze/cid-10-datasus-v2008/` | 6 CSVs: capítulos, grupos, categorias, subcategorias, CID-O categorias, CID-O grupos |
+| `ftp` | FTP — `ftp.datasus.gov.br` | `dados/1-bronze/cid-10-ftp_datasus/` | 2 CSVs: CID10 (categorias+subcategorias) e CIDCAP10 (capítulos) |
+
+Os dois valores podem ser combinados na mesma chamada para baixar ambas as fontes de uma vez.
+
+**macOS / Linux**
+```bash
+# Fonte v2008 — padrão, sem precisar passar --fonte
+python3 scripts/1-bronze/datasus_cid10.py
+
+# Fonte v2008 — explícita
+python3 scripts/1-bronze/datasus_cid10.py --fonte v2008
+
+# Fonte FTP
+python3 scripts/1-bronze/datasus_cid10.py --fonte ftp
+
+# Ambas as fontes em sequência
+python3 scripts/1-bronze/datasus_cid10.py --fonte v2008 ftp
+
+# Sem novo download — reprocessa a partir dos arquivos já baixados
+python3 scripts/1-bronze/datasus_cid10.py --apenas-converter
+python3 scripts/1-bronze/datasus_cid10.py --fonte ftp --apenas-converter
+
+# Verificar colunas dos CSVs gerados
+python3 scripts/1-bronze/datasus_cid10.py --validacao
+python3 scripts/1-bronze/datasus_cid10.py --fonte ftp --validacao
+python3 scripts/1-bronze/datasus_cid10.py --fonte v2008 ftp --validacao
+```
+
+**Windows**
+```bat
+python scripts/1-bronze/datasus_cid10.py
+python scripts/1-bronze/datasus_cid10.py --fonte v2008
+python scripts/1-bronze/datasus_cid10.py --fonte ftp
+python scripts/1-bronze/datasus_cid10.py --fonte v2008 ftp
+python scripts/1-bronze/datasus_cid10.py --apenas-converter
+python scripts/1-bronze/datasus_cid10.py --fonte ftp --apenas-converter
+python scripts/1-bronze/datasus_cid10.py --fonte v2008 ftp --validacao
+```
+
+#### Conteúdo da fonte `v2008`
+
+Saída em `dados/1-bronze/cid-10-datasus-v2008/csv/`:
+
+| Arquivo | Linhas | Colunas |
+|---------|-------:|---------|
+| `CID-10-CAPITULOS.csv` | 22 | NUMCAP, CATINIC, CATFIM, DESCRICAO, DESCRABREV |
+| `CID-10-GRUPOS.csv` | 275 | CATINIC, CATFIM, DESCRICAO, DESCRABREV |
+| `CID-10-CATEGORIAS.csv` | 2.045 | CAT, CLASSIF, DESCRICAO, DESCRABREV, REFER, EXCLUIDOS |
+| `CID-10-SUBCATEGORIAS.csv` | 12.451 | SUBCAT, CLASSIF, RESTRSEXO, CAUSAOBITO, DESCRICAO, DESCRABREV, REFER, EXCLUIDOS |
+| `CID-O-CATEGORIAS.csv` | 816 | CAT, DESCRICAO, REFER |
+| `CID-O-GRUPOS.csv` | 63 | CATINIC, CATFIM, DESCRICAO, REFER |
+
+#### Conteúdo da fonte `ftp`
+
+Saída em `dados/1-bronze/cid-10-ftp_datasus/csv/`:
+
+| Arquivo | Linhas | Colunas |
+|---------|-------:|---------|
+| `CID10.csv` | 14.257 | CID10, OPC, CAT, SUBCAT, DESCR, RESTRSEXO |
+| `CIDCAP10.csv` | 22 | DESCRICAO, CAUSAS |
+
+### 3. IBGE — Cadastro de Municípios (API REST)
 
 **macOS / Linux**
 ```bash
@@ -187,7 +269,7 @@ python scripts/1-bronze/ibge_dados_municipios.py --estados PB PE CE RN
 
 Saída: `dados/1-bronze/ibge_dados_municipios/json/municipios.json` e `dados/1-bronze/ibge_dados_municipios/csv/municipios.csv`
 
-### 3. IBGE — Projeções Populacionais (POPSVS)
+### 4. IBGE — Projeções Populacionais (POPSVS)
 
 **macOS / Linux**
 ```bash

@@ -6,11 +6,11 @@ Baixa arquivos DBC do FTP do DATASUS, organiza por sistema/ano/extensão
 e converte para CSV.
 
 Uso:
-    python3 datasus.py --sistema SIM
-    python3 datasus.py --sistema SIH --anos 2022 2023
-    python3 datasus.py --sistema SIM --estados SP RJ MG --anos 2020 2021
-    python3 datasus.py --sistema SIM --apenas-converter
-    python3 datasus.py --listar-sistemas
+    python3 datasus_dados.py --sistema SIM
+    python3 datasus_dados.py --sistema SIH --anos 2022 2023
+    python3 datasus_dados.py --sistema SIM --estados SP RJ MG --anos 2020 2021
+    python3 datasus_dados.py --sistema SIM --apenas-converter
+    python3 datasus_dados.py --listar-sistemas
 """
 
 import ftplib
@@ -310,11 +310,11 @@ def main():
         description='Baixa e converte dados do DATASUS (FTP)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='Exemplos:\n'
-               '  python3 datasus.py --sistema SIM\n'
-               '  python3 datasus.py --sistema SIH --anos 2022 2023\n'
-               '  python3 datasus.py --sistema SIM --estados SP RJ MG\n'
-               '  python3 datasus.py --sistema SIM --apenas-converter\n'
-               '  python3 datasus.py --listar-sistemas\n',
+               '  python3 datasus_dados.py --sistema SIM\n'
+               '  python3 datasus_dados.py --sistema SIH --anos 2022 2023\n'
+               '  python3 datasus_dados.py --sistema SIM --estados SP RJ MG\n'
+               '  python3 datasus_dados.py --sistema SIM --apenas-converter\n'
+               '  python3 datasus_dados.py --listar-sistemas\n',
     )
 
     parser.add_argument(
