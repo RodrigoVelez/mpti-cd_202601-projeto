@@ -79,10 +79,10 @@ Os scripts e dados seguem a arquitetura Medallion com três camadas:
     │   ├── SIM/
     │   │   ├── dbc/YYYY/            # Arquivos brutos do DataSUS por ano
     │   │   └── csv/YYYY/            # Declarações de óbito convertidas para CSV
-    │   ├── cid-10-datasus-v2008/    # CID-10 via HTTP (--fonte v2008, padrão)
+    │   ├── cid_10_datasus_v2008/    # CID-10 via HTTP (--fonte v2008, padrão)
     │   │   ├── zip/                 # ZIP original baixado
     │   │   └── csv/                 # 6 CSVs normalizados (utf-8-sig, separador vírgula)
-    │   ├── cid-10-ftp_datasus/      # CID-10 via FTP (--fonte ftp)
+    │   ├── cid_10_datasus_ftp/      # CID-10 via FTP (--fonte ftp)
     │   │   ├── dbf/                 # DBFs originais baixados do FTP
     │   │   └── csv/                 # DBFs convertidos para CSV
     │   ├── ibge_dados_municipios/
@@ -191,8 +191,8 @@ O script `datasus_cid10.py` suporta duas fontes independentes, selecionáveis pe
 
 | Valor | Fonte | Pasta de saída | Arquivos gerados |
 |-------|-------|----------------|------------------|
-| `v2008` | HTTP — `www2.datasus.gov.br` | `dados/1-bronze/cid-10-datasus-v2008/` | 6 CSVs: capítulos, grupos, categorias, subcategorias, CID-O categorias, CID-O grupos |
-| `ftp` | FTP — `ftp.datasus.gov.br` | `dados/1-bronze/cid-10-ftp_datasus/` | 2 CSVs: CID10 (categorias+subcategorias) e CIDCAP10 (capítulos) |
+| `v2008` | HTTP — `www2.datasus.gov.br` | `dados/1-bronze/cid_10_datasus_v2008/` | 6 CSVs: capítulos, grupos, categorias, subcategorias, CID-O categorias, CID-O grupos |
+| `ftp` | FTP — `ftp.datasus.gov.br` | `dados/1-bronze/cid_10_datasus_ftp/` | 2 CSVs: CID10 (categorias+subcategorias) e CIDCAP10 (capítulos) |
 
 **Padrão (sem `--fonte`):** baixa as duas fontes em sequência.
 
@@ -227,7 +227,7 @@ python scripts/1-bronze/datasus_cid10.py --fonte v2008 ftp --validacao
 
 #### Conteúdo da fonte `v2008`
 
-Saída em `dados/1-bronze/cid-10-datasus-v2008/csv/`:
+Saída em `dados/1-bronze/cid_10_datasus_v2008/csv/`:
 
 | Arquivo | Linhas | Colunas |
 |---------|-------:|---------|
@@ -240,7 +240,7 @@ Saída em `dados/1-bronze/cid-10-datasus-v2008/csv/`:
 
 #### Conteúdo da fonte `ftp`
 
-Saída em `dados/1-bronze/cid-10-ftp_datasus/csv/`:
+Saída em `dados/1-bronze/cid_10_datasus_ftp/csv/`:
 
 | Arquivo | Linhas | Colunas |
 |---------|-------:|---------|

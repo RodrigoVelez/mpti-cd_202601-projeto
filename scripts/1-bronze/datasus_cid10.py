@@ -44,13 +44,13 @@ from dbfread import DBF
 # Fonte: v2008 (HTTP)
 V2008_URL  = 'http://www2.datasus.gov.br/cid10/V2008/downloads/CID10CSV.zip'
 V2008_ZIP  = 'CID10CSV.zip'
-V2008_BASE = Path('dados') / '1-bronze' / 'cid-10-datasus-v2008'
+V2008_BASE = Path('dados') / '1-bronze' / 'cid_10_datasus_v2008'
 
 # Fonte: ftp (DATASUS FTP)
 FTP_HOST  = 'ftp.datasus.gov.br'
 FTP_PATH  = '/dissemin/publicos/SIM/CID10/TABELAS/'
 FTP_TABELAS = ['CID10.DBF', 'CIDCAP10.DBF']
-FTP_BASE  = Path('dados') / '1-bronze' / 'cid-10-ftp_datasus'
+FTP_BASE  = Path('dados') / '1-bronze' / 'cid_10_datasus_ftp'
 
 FONTES_DISPONIVEIS = ['v2008', 'ftp']
 
