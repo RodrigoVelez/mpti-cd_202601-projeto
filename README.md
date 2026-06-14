@@ -51,9 +51,9 @@ Os scripts e dados seguem a arquitetura Medallion com três camadas:
 
 | Camada | Pasta de scripts | Pasta de dados | Descrição |
 |--------|-----------------|----------------|-----------|
-| **Bronze** | `scripts/1-bronze/` | `dados/1-bronze/` | Dados brutos coletados das fontes, sem transformação |
-| **Prata** | `scripts/2-prata/` | `dados/2-prata/` | Dados limpos, padronizados e integrados *(próximas semanas)* |
-| **Ouro** | `scripts/3-ouro/` | `dados/3-ouro/` | Dataset analítico consolidado, pronto para análise *(próximas semanas)* |
+| **Bronze** | scripts/1-bronze/ | dados/1-bronze/ | Dados brutos coletados das fontes, sem transformação |
+| **Prata** | scripts/2-prata/ | dados/2-prata/ | Dados limpos, padronizados e integrados *(próximas semanas)* |
+| **Ouro** | scripts/3-ouro/ | dados/3-ouro/ | Dataset analítico consolidado, pronto para análise *(próximas semanas)* |
 
 ## Estrutura do Repositório
 
@@ -104,16 +104,16 @@ pip install pandas pyreaddbc dbfread
 
 ## Execução dos Scripts de Coleta
 
-### Carregar todos os datasets de uma vez com `exec.py`
+### Carregar todos os datasets de uma vez com exec.py
 
 O `exec.py` executa os três scripts da camada Bronze em sequência (DataSUS SIM → municípios IBGE → população IBGE) e repassa automaticamente cada argumento apenas aos scripts que o aceitam:
 
 | Argumento | datasus.py | ibge_populacao.py | ibge_dados_municipios.py |
 |-----------|:---:|:---:|:---:|
-| --anos | ✓ | ✓ | — |
-| --estados | ✓ | — | ✓ |
-| --apenas-converter | ✓ | ✓ | — |
-| --validacao | ✓ | ✓ | — |
+| *--anos* | ✓ | ✓ | — |
+| *--estados* | ✓ | — | ✓ |
+| *--apenas-converter* | ✓ | ✓ | — |
+| *--validacao* | ✓ | ✓ | — |
 
 **macOS / Linux**
 ```bash
