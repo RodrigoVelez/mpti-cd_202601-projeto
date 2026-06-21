@@ -240,11 +240,15 @@ Histograma da distribuição geral da taxa DCNT e boxplots comparativos por gran
 
 - **Saída:** `dados/3-ouro/eda_distribuicao.png`
 
+![Distribuição da Taxa DCNT](docs/imagens/semana4/eda_distribuicao.png)
+
 #### Célula 4.2b — Ranking Municipal (Top/Bottom 10)
 
 Identifica os 10 municípios com maior e os 10 com menor taxa média de DCNT (média histórica 2010–2024), exibidos como gráfico de barras horizontais lado a lado.
 
 - **Saída:** `dados/3-ouro/eda_ranking_municipios.png`
+
+![Ranking Municipal de Taxa DCNT](docs/imagens/semana4/eda_ranking_municipios.png)
 
 > **Nota interpretativa:** municípios com baixo volume populacional podem apresentar taxas instáveis por flutuação estatística.
 
@@ -254,11 +258,15 @@ Série histórica da taxa média de DCNT por grande região (2010–2024) e méd
 
 - **Saída:** `dados/3-ouro/eda_temporal.png`
 
+![Evolução Temporal da Taxa DCNT por Região](docs/imagens/semana4/eda_temporal.png)
+
 #### Célula 4.4 — Breakdown por Grupo de DCNT
 
 Proporção de óbitos por grupo de DCNT (Cardiovascular, Neoplasia, Respiratória, Diabetes) em cada grande região, acumulados em gráfico de barras empilhadas.
 
 - **Saída:** `dados/3-ouro/eda_breakdown_dcnt.png`
+
+![Breakdown por Grupo de DCNT](docs/imagens/semana4/eda_breakdown_dcnt.png)
 
 ---
 
@@ -292,6 +300,8 @@ Pré-processa as features e encontra o número ótimo de clusters usando dois cr
 
 - **Saída:** `dados/3-ouro/clustering_elbow.png`
 
+![Elbow Method e Silhouette Score](docs/imagens/semana4/clustering_elbow.png)
+
 #### Célula 5.3 — K-Means Final e Análise dos Clusters
 
 Aplica o K-Means com `K_FINAL = best_k` e analisa os perfis resultantes:
@@ -303,6 +313,8 @@ Aplica o K-Means com `K_FINAL = best_k` e analisa os perfis resultantes:
 
 - **Saída:** `dados/3-ouro/clustering_pca.png`
 - **Saída:** `dados/3-ouro/municipios_clusters.parquet` + `.csv` ← dataset final com rótulo de cluster por município
+
+![Projeção PCA 2D dos Clusters Municipais](docs/imagens/semana4/clustering_pca.png)
 
 ---
 
@@ -322,11 +334,15 @@ Municípios sem dados suficientes para clustering aparecem em cinza claro. A leg
 - **Shapefile:** `dados/shapefiles/BR_Municipios_2022.shp` (baixado automaticamente se ausente)
 - **Saída:** `dados/3-ouro/mapa_dcnt_clusters.png`
 
+![Mapa Coroplético — Taxa DCNT e Clusters Municipais](docs/imagens/semana4/mapa_dcnt_clusters.png)
+
 #### Célula 6.2 — Perfil Comparativo dos Clusters
 
 Gráfico de barras agrupadas que compara os clusters em todas as 7 features. Cada barra mostra o valor do cluster como **percentual do cluster líder** naquela dimensão (o maior sempre aparece em 100%), garantindo que todos os clusters sejam visíveis mesmo quando as diferenças absolutas são grandes. O percentual é anotado sobre cada barra.
 
 - **Saída:** `dados/3-ouro/clustering_perfil.png`
+
+![Perfil Comparativo dos Clusters](docs/imagens/semana4/clustering_perfil.png)
 
 ---
 
@@ -384,6 +400,17 @@ Granularidade: **uma linha por município** (média histórica 2010–2024).
 │       ├── Contexto_Projeto_Ciencia_de_Dados.pdf
 │       ├── Cronograma_Projeto_Ciencia_de_Dados.pdf
 │       └── Roteiro do projeto de Ciência de Dados.pdf
+├── docs/
+│   └── imagens/
+│       └── semana4/                  # Artefatos visuais versionados (Semana 4)
+│           ├── eda_distribuicao.png
+│           ├── eda_ranking_municipios.png
+│           ├── eda_temporal.png
+│           ├── eda_breakdown_dcnt.png
+│           ├── clustering_elbow.png
+│           ├── clustering_pca.png
+│           ├── clustering_perfil.png
+│           └── mapa_dcnt_clusters.png
 └── dados/                            # Gerado localmente — NÃO versionado
     ├── 1-bronze/
     ├── 2-prata/
