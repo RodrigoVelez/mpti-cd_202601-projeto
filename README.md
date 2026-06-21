@@ -73,7 +73,7 @@ pip install pandas pyarrow pyreaddbc dbfread
 
 Acessa o FTP `ftp.datasus.gov.br` no diretório `/dissemin/publicos/SIM/CID10/DORES/` e baixa um arquivo DBC por estado por ano no formato `DO{UF}{ANO}.dbc`. Cada DBC é convertido para Parquet via `pyreaddbc` + `dbfread`. O DBC é excluído após conversão bem-sucedida.
 
-- **Período:** 2010–2020 (11 exercícios)
+- **Período:** 2010–2024 (15 exercícios)
 - **Estados:** 27 UFs
 - **Saída:** `dados/1-bronze/SIM/parquet/{ANO}/DO{UF}{ANO}.parquet`
 
@@ -87,7 +87,7 @@ Consulta a API REST do IBGE e baixa o cadastro completo de 5.570 municípios com
 
 Baixa do FTP do DataSUS os arquivos ZIP de projeções populacionais, extrai os DBFs e converte para Parquet.
 
-- **Período:** 2010–2020 (11 exercícios)
+- **Período:** 2010–2024 (15 exercícios)
 - **Saída:** `dados/1-bronze/ibge_populacao/parquet/{ANO}/POP{AA}.parquet`
 
 ### Bronze 4/4 — CID-10 (tabelas de referência)
@@ -107,14 +107,14 @@ dados/1-bronze/
 │   └── parquet/
 │       ├── 2010/  DO{UF}2010.parquet  (até 27 arquivos)
 │       ├── ···
-│       └── 2020/  DO{UF}2020.parquet
+│       └── 2024/  DO{UF}2024.parquet
 ├── ibge_dados_municipios/
 │   └── parquet/municipios.parquet
 ├── ibge_populacao/
 │   └── parquet/
 │       ├── 2010/  POP10.parquet
 │       ├── ···
-│       └── 2020/  POP20.parquet
+│       └── 2024/  POP24.parquet
 ├── cid_10_datasus_v2008/
 │   └── parquet/  (CID-10-CAPITULOS, GRUPOS, CATEGORIAS, SUBCATEGORIAS, CID-O-*)
 └── cid_10_datasus_ftp/
@@ -191,7 +191,7 @@ dados/2-prata/
 └── SIM/
     ├── 2010/  datasus_sim_2010.parquet + .csv
     ├── ···
-    └── 2020/  datasus_sim_2020.parquet + .csv
+    └── 2024/  datasus_sim_2024.parquet + .csv
 ```
 
 ---
@@ -243,7 +243,7 @@ dados/3-ouro/
 ├── SIM/
 │   ├── 2010/  sim_ouro_2010.parquet + .csv
 │   ├── ···
-│   ├── 2020/  sim_ouro_2020.parquet + .csv
+│   ├── 2024/  sim_ouro_2024.parquet + .csv
 │   └── taxa_dcnt_municipio.parquet / .csv   ← atributo derivado
 └── IBGE/
     ├── populacao_municipio.parquet
