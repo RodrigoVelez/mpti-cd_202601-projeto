@@ -20,277 +20,320 @@ Identificar padrões e perfis de municípios brasileiros em relação à mortali
 - Identificar agrupamentos de municípios com características semelhantes (clustering)
 - Explorar relações entre indicadores de mortalidade e variáveis demográficas
 
+---
+
 ## Fontes de Dados
 
 | Fonte | Descrição | Acesso | Formato bruto |
 |-------|-----------|--------|---------------|
 | **DataSUS / SIM** | Sistema de Informações sobre Mortalidade — declarações de óbito com causas por CID-10, por município, estado e ano | FTP `ftp.datasus.gov.br` | DBC |
-| **DataSUS / CID-10 v2008** | Tabelas de referência CID-10: capítulos, grupos, categorias, subcategorias e CID-O | HTTP `www2.datasus.gov.br` | ZIP/CSV |
-| **DataSUS / CID-10 FTP** | Tabelas de referência CID-10 em DBF: categorias+subcategorias e capítulos | FTP `ftp.datasus.gov.br` | DBF |
-| **IBGE / POPSVS** | Projeções populacionais por município, disponibilizadas via FTP do DataSUS | FTP `ftp.datasus.gov.br` | ZIP/DBF |
+| **DataSUS / CID-10 v2008** | Tabelas de referência CID-10: capítulos, grupos, categorias e subcategorias | HTTP `www2.datasus.gov.br` | ZIP/CSV |
+| **DataSUS / CID-10 FTP** | Tabelas de referência CID-10 em DBF | FTP `ftp.datasus.gov.br` | DBF |
+| **IBGE / POPSVS** | Projeções populacionais por município via FTP do DataSUS | FTP `ftp.datasus.gov.br` | ZIP/DBF |
 | **IBGE API REST** | Cadastro oficial de municípios com código IBGE, microrregião, mesorregião e UF | API `servicodados.ibge.gov.br` | JSON |
 
 Todos os dados são secundários, já agregados e anonimizados pelos órgãos responsáveis — o projeto está em conformidade com a LGPD.
 
-## Entrega da Semana 1 (02/06–08/06): Seleção e Coleta das Fontes
+---
 
-Esta etapa corresponde ao **marco inicial do projeto**: repositório configurado, fontes documentadas e scripts de coleta implementados e validados.
+## Arquitetura Medallion
 
-A pasta `dados/` é gerada localmente pela execução dos scripts e **não é versionada no repositório**. Para reproduzir o ambiente de dados, execute o `exec.py` ou os scripts individualmente conforme descrito na seção [Execução dos Scripts de Coleta](#execução-dos-scripts-de-coleta).
+O pipeline segue a arquitetura Medallion com três camadas, implementado integralmente no notebook [`projeto_cd_2026_01.ipynb`](projeto_cd_2026_01.ipynb):
 
-Scripts entregues nesta etapa:
+```
+🥉 Bronze  →  🥈 Prata  →  🥇 Ouro
+(coleta)      (limpeza)    (análise)
+```
 
-| Script | Descrição |
-|--------|-----------|
-| [`scripts/exec.py`](scripts/exec.py) | Orquestrador — executa os quatro scripts da camada Bronze em sequência. |
-| [`scripts/1-bronze/datasus_dados.py`](scripts/1-bronze/datasus_dados.py) | Baixa arquivos DBC do FTP do DataSUS (SIM/CID-10) e converte para CSV. Cobre todos os 27 estados, de 2010 a 2024. |
-| [`scripts/1-bronze/datasus_cid10.py`](scripts/1-bronze/datasus_cid10.py) | Baixa tabelas de referência CID-10 de duas fontes via `--fonte`: `v2008` (HTTP) e `ftp` (DATASUS FTP). Por padrão, baixa as duas. |
-| [`scripts/1-bronze/ibge_dados_municipios.py`](scripts/1-bronze/ibge_dados_municipios.py) | Coleta o cadastro completo de municípios via API REST do IBGE, grava o JSON bruto e o CSV tabular com colunas normalizadas. |
-| [`scripts/1-bronze/ibge_populacao.py`](scripts/1-bronze/ibge_populacao.py) | Baixa ZIPs de projeções populacionais do IBGE via FTP do DataSUS, extrai os DBFs e converte para CSV. Período: 2010–2024. |
+| Camada | Pasta de dados | Descrição |
+|--------|----------------|-----------|
+| **Bronze** | `dados/1-bronze/` | Dados brutos coletados das fontes, convertidos para Parquet sem transformação de conteúdo |
+| **Prata** | `dados/2-prata/` | Dados limpos, padronizados e filtrados por fonte |
+| **Ouro** | `dados/3-ouro/` | Dataset analítico enriquecido com joins entre todas as fontes |
 
-## Arquitetura de Dados — Medallion
+> A pasta `dados/` é gerada localmente pela execução do notebook e **não é versionada no repositório**.
 
-Os scripts e dados seguem a arquitetura Medallion com três camadas:
+---
 
-| Camada | Pasta de scripts | Pasta de dados | Descrição |
-|--------|-----------------|----------------|-----------|
-| **Bronze** | scripts/1-bronze/ | dados/1-bronze/ | Dados brutos coletados das fontes, sem transformação |
-| **Prata** | scripts/2-prata/ | dados/2-prata/ | Dados limpos, padronizados e integrados *(próximas semanas)* |
-| **Ouro** | scripts/3-ouro/ | dados/3-ouro/ | Dataset analítico consolidado, pronto para análise *(próximas semanas)* |
+## Pipeline de Execução
+
+Todo o pipeline é executado no notebook [`projeto_cd_2026_01.ipynb`](projeto_cd_2026_01.ipynb). Execute as células em ordem.
+
+### Pré-requisitos
+
+```bash
+pip install pandas pyarrow pyreaddbc dbfread
+```
+
+---
+
+## Camada Bronze — Coleta e Conversão
+
+### Bronze 1/4 — DataSUS SIM (Declarações de Óbito)
+
+Acessa o FTP `ftp.datasus.gov.br` no diretório `/dissemin/publicos/SIM/CID10/DORES/` e baixa um arquivo DBC por estado por ano no formato `DO{UF}{ANO}.dbc`. Cada DBC é convertido para Parquet via `pyreaddbc` + `dbfread`. O DBC é excluído após conversão bem-sucedida.
+
+- **Período:** 2010–2020 (11 exercícios)
+- **Estados:** 27 UFs
+- **Saída:** `dados/1-bronze/SIM/parquet/{ANO}/DO{UF}{ANO}.parquet`
+
+### Bronze 2/4 — IBGE Municípios (API REST)
+
+Consulta a API REST do IBGE e baixa o cadastro completo de 5.570 municípios com código IBGE, nome, UF e região.
+
+- **Saída:** `dados/1-bronze/ibge_dados_municipios/parquet/municipios.parquet`
+
+### Bronze 3/4 — IBGE Projeções Populacionais
+
+Baixa do FTP do DataSUS os arquivos ZIP de projeções populacionais, extrai os DBFs e converte para Parquet.
+
+- **Período:** 2010–2020 (11 exercícios)
+- **Saída:** `dados/1-bronze/ibge_populacao/parquet/{ANO}/POP{AA}.parquet`
+
+### Bronze 4/4 — CID-10 (tabelas de referência)
+
+Baixa as tabelas de referência CID-10 de duas fontes independentes:
+
+| Fonte | Acesso | Saída |
+|-------|--------|-------|
+| `v2008` | HTTP `www2.datasus.gov.br` | `dados/1-bronze/cid_10_datasus_v2008/parquet/` |
+| `ftp` | FTP `ftp.datasus.gov.br` | `dados/1-bronze/cid_10_datasus_ftp/parquet/` |
+
+**Estrutura Bronze gerada:**
+
+```
+dados/1-bronze/
+├── SIM/
+│   └── parquet/
+│       ├── 2010/  DO{UF}2010.parquet  (até 27 arquivos)
+│       ├── ···
+│       └── 2020/  DO{UF}2020.parquet
+├── ibge_dados_municipios/
+│   └── parquet/municipios.parquet
+├── ibge_populacao/
+│   └── parquet/
+│       ├── 2010/  POP10.parquet
+│       ├── ···
+│       └── 2020/  POP20.parquet
+├── cid_10_datasus_v2008/
+│   └── parquet/  (CID-10-CAPITULOS, GRUPOS, CATEGORIAS, SUBCATEGORIAS, CID-O-*)
+└── cid_10_datasus_ftp/
+    └── parquet/  (CID10.parquet, CIDCAP10.parquet)
+```
+
+---
+
+## Camada Prata — Limpeza, Normalização e Filtros
+
+### Prata 1/4 — CID-10
+
+Consolida as tabelas CID-10 do Bronze em um único dataset normalizado com hierarquia completa.
+
+- **Ajustes:** remoção de prefixos numéricos das descrições, derivação de capítulo e grupo por intervalo de código
+- **Schema:** `codigo_capitulo`, `descricao_capitulo`, `codigo_grupo`, `descricao_grupo`, `codigo_categoria`, `descricao_categoria`, `codigo_cid10`, `descricao_cid10`
+- **Saída:** `dados/2-prata/CID10/cid10.parquet` + `.csv`
+
+### Prata 2/4 — IBGE Municípios
+
+Normaliza o cadastro de municípios e gera o código IBGE de 6 dígitos (`codigo_municipio_6c`) necessário para o join com o SIM.
+
+- **Ajustes:** conversão de tipos, strip de espaços, extração de `codigo_municipio_6c = codigo_municipio[:6]`
+- **Schema:** `codigo_municipio` (7c), `codigo_municipio_6c`, `nome_municipio`, `codigo_estado`, `sigla_estado`, `nome_estado`, `codigo_regiao`, `sigla_regiao`, `nome_regiao`
+- **Saída:** `dados/2-prata/IBGE/ibge_municipios.parquet` + `.csv`
+
+### Prata 3/4 — IBGE Projeções Populacionais
+
+Agrega população por município, exercício e sexo (soma todas as faixas etárias de cada arquivo anual).
+
+- **Mapeamento de sexo:** `1→M`, `2→F`, `0/9→I`
+- **Schema:** `codigo_municipio`, `exercicio`, `sexo` (M/F/I), `populacao`
+- **Ordenação:** `exercicio → codigo_municipio → sexo`
+- **Saída:** `dados/2-prata/IBGE/ibge_populacao.parquet` + `.csv`
+
+### Prata 4/4 — DataSUS SIM (Declarações de Óbito)
+
+Agrega óbitos por município, causa básica (CID-10), sexo e exercício. Classifica cada grupo como DCNT ou não. Gera um arquivo por exercício, consolidando todos os estados.
+
+**Filtros aplicados (registros removidos, em ordem):**
+
+| # | Filtro | Campo | Critério |
+|---|--------|-------|----------|
+| 1 | Apenas óbitos não-fetais | `TIPOBITO` | ≠ `2` |
+| 2 | Município de ocorrência preenchido | `CODMUNOCOR` | vazio ou `nan` |
+| 3 | Causa básica preenchida | `CAUSABAS` | vazio ou `nan` |
+| 4 | Município válido no IBGE | `CODMUNOCOR` | código não existe na tabela de municípios Prata |
+
+Ao final do processamento é exibido um **resumo consolidado** com a contagem e o percentual de cada filtro sobre o total bruto de registros lidos.
+
+**Critério de classificação DCNT (`dcnt = 'S'`):**
+
+| Faixa CID-10 | Grupo |
+|---|---|
+| I00–I99 | Doenças cardiovasculares |
+| C00–C97 | Neoplasias malignas |
+| J30–J98 (exceto J36) | Doenças respiratórias crônicas |
+| E10–E14 | Diabetes mellitus |
+
+- **Schema:** `sexo`, `codigo_municipio`, `cid10`, `exercicio`, `dcnt`, `arquivo_origem`, `obitos`
+- **Ordenação:** `codigo_municipio → cid10 → sexo`
+- **Saída:** `dados/2-prata/SIM/{ANO}/datasus_sim_{ANO}.parquet` + `.csv`
+
+**Estrutura Prata gerada:**
+
+```
+dados/2-prata/
+├── CID10/
+│   ├── cid10.parquet
+│   └── cid10.csv
+├── IBGE/
+│   ├── ibge_municipios.parquet  ├── ibge_municipios.csv
+│   ├── ibge_populacao.parquet   └── ibge_populacao.csv
+└── SIM/
+    ├── 2010/  datasus_sim_2010.parquet + .csv
+    ├── ···
+    └── 2020/  datasus_sim_2020.parquet + .csv
+```
+
+---
+
+## Camada Ouro — Integração e Dataset Analítico
+
+### Ouro 1/2 — SIM × Municípios × CID-10
+
+Para cada exercício, realiza joins entre os três datasets prata, enriquece com hierarquia geográfica e classificação CID-10, e gera o arquivo analítico final.
+
+**Joins realizados:**
+
+| Join | Chave esquerda | Chave direita |
+|------|---------------|---------------|
+| SIM × Municípios | `sim.codigo_municipio` | `mun.codigo_municipio_6c` |
+| resultado × CID-10 | `sim.cid10` | `cid.codigo_cid10` |
+
+Todos os municípios na Prata são garantidamente válidos (filtro 4 aplicado em Prata 4/4), portanto o join com `mun` é sempre resolvido. O merge funciona como inner join efetivo — qualquer linha sem correspondência indica problema nos dados de origem e é reportado como `[ERRO]`.
+
+**Ordenação:** `codigo_municipio → codigo_cid10 → sexo`
+
+### Ouro 2/2 — Populacao × Municípios
+
+Enriquece a população Prata com a hierarquia geográfica completa (códigos de 6 e 7 dígitos, estado, região). Serve como referência de população para o cálculo de taxas na camada Ouro — o atributo derivado de taxa usa este arquivo.
+
+**Join:** `pop.codigo_municipio (6c) = mun.codigo_municipio_6c`
+
+- **Schema:** `exercicio`, `codigo_municipio_6c`, `codigo_municipio` (7c), `nome_municipio`, `sigla_estado`, `nome_estado`, `sigla_regiao`, `nome_regiao`, `sexo`, `populacao`
+- **Ordenação:** `exercicio → sigla_estado → codigo_municipio_6c → sexo`
+- **Saída:** `dados/3-ouro/IBGE/populacao_municipio.parquet` + `.csv`
+
+| # | Coluna | Tipo | Descrição |
+|---|--------|------|-----------|
+| 1 | `exercicio` | string | Ano da projeção populacional |
+| 2 | `codigo_municipio_6c` | string | Código IBGE 6 dígitos (chave de join com SIM) |
+| 3 | `codigo_municipio` | string | Código IBGE 7 dígitos oficial |
+| 4 | `nome_municipio` | string | Nome oficial do município |
+| 5 | `sigla_estado` | string | Sigla da UF |
+| 6 | `nome_estado` | string | Nome completo da UF |
+| 7 | `sigla_regiao` | string | Sigla da grande região |
+| 8 | `nome_regiao` | string | Nome da grande região |
+| 9 | `sexo` | string | M / F / I |
+| 10 | `populacao` | int | Projeção populacional para o exercício |
+
+**Estrutura Ouro gerada:**
+
+```
+dados/3-ouro/
+├── SIM/
+│   ├── 2010/  sim_ouro_2010.parquet + .csv
+│   ├── ···
+│   ├── 2020/  sim_ouro_2020.parquet + .csv
+│   └── taxa_dcnt_municipio.parquet / .csv   ← atributo derivado
+└── IBGE/
+    ├── populacao_municipio.parquet
+    └── populacao_municipio.csv
+```
+
+---
+
+## Dicionário de Dados — Dataset Ouro (`sim_ouro_{ANO}`)
+
+Granularidade: **uma linha por combinação de** município × CID-10 × sexo × arquivo de origem.
+
+| # | Coluna | Tipo | Origem | Descrição |
+|---|--------|------|--------|-----------|
+| 1 | `sexo` | string | SIM | Sexo do falecido: `M` · `F` · `I` (ignorado) |
+| 2 | `codigo_municipio` | string | SIM | Código IBGE 6 dígitos do município de ocorrência (CODMUNOCOR) |
+| 3 | `codigo_municipio_6c` | string | Municípios | Código IBGE 6 dígitos validado na tabela de municípios |
+| 4 | `nome_municipio` | string | Municípios | Nome oficial do município |
+| 5 | `sigla_estado` | string | Municípios | Sigla da UF |
+| 6 | `nome_estado` | string | Municípios | Nome completo da UF |
+| 7 | `sigla_regiao` | string | Municípios | Sigla da grande região |
+| 8 | `nome_regiao` | string | Municípios | Nome da grande região |
+| 9 | `codigo_cid10` | string | CID-10 | Código da causa básica do óbito |
+| 10 | `descricao_cid10` | string | CID-10 | Descrição da causa básica |
+| 11 | `exercicio` | string | SIM | Ano de ocorrência do óbito |
+| 12 | `dcnt` | string | Calculado | `S` = causa DCNT · `N` = demais causas |
+| 13 | `arquivo_origem` | string | SIM | Arquivo bronze de origem (ex.: `DOSP2010` = São Paulo 2010) |
+| 14 | `obitos` | int | SIM | Contagem de óbitos agregada por grupo |
+
+---
+
+## Atributo Derivado — Taxa de Mortalidade DCNT por 100 mil habitantes
+
+Calcula a taxa epidemiológica padrão para cada município e exercício (soma ambos os sexos).
+
+**Fórmula:** `taxa_dcnt_100k = (obitos_dcnt / populacao) × 100.000`
+
+| # | Coluna | Tipo | Descrição |
+|---|--------|------|-----------|
+| 1 | `exercicio` | string | Ano |
+| 2 | `codigo_municipio` | string | Código IBGE 6 dígitos |
+| 3 | `nome_municipio` | string | Nome do município |
+| 4 | `sigla_estado` | string | Sigla da UF |
+| 5 | `nome_estado` | string | Nome da UF |
+| 6 | `sigla_regiao` | string | Sigla da região |
+| 7 | `nome_regiao` | string | Nome da região |
+| 8 | `obitos_dcnt` | int | Total de óbitos por DCNT |
+| 9 | `populacao` | int | População total do município no exercício |
+| 10 | `taxa_dcnt_100k` | float | Taxa de mortalidade DCNT por 100 mil habitantes |
+
+- **Ordenação:** exercício ascendente, taxa descendente
+- **Fonte de população:** `dados/3-ouro/IBGE/populacao_municipio.parquet` (Ouro 2/2)
+- **Saída:** `dados/3-ouro/SIM/taxa_dcnt_municipio.parquet` + `.csv`
+
+---
 
 ## Estrutura do Repositório
 
 ```
 .
-├── scripts/
-│   ├── exec.py                      # Orquestrador — executa toda a camada Bronze
-│   ├── 1-bronze/
-│   │   ├── datasus_dados.py         # Coleta SIM via FTP DataSUS (óbitos por estado/ano)
-│   │   ├── datasus_cid10.py         # Coleta tabelas CID-10 (duas fontes via --fonte)
-│   │   ├── ibge_dados_municipios.py # Coleta cadastro de municípios via API IBGE
-│   │   └── ibge_populacao.py        # Coleta projeções populacionais via FTP DataSUS
-│   ├── 2-prata/                     # Scripts de limpeza e integração (próximas semanas)
-│   └── 3-ouro/                      # Scripts de consolidação analítica (próximas semanas)
+├── projeto_cd_2026_01.ipynb          # Notebook principal — executa todo o pipeline
 ├── documentos/
-│   ├── Contexto_Projeto_Coencis_de_Dados.pdf
-│   └── Cronograma_Projeto_Ciencia_de_Dados.pdf
-└── dados/                           # Gerado localmente — NÃO versionado
+│   └── projeto/
+│       ├── Contexto_Projeto_Ciencia_de_Dados.pdf
+│       ├── Cronograma_Projeto_Ciencia_de_Dados.pdf
+│       └── Roteiro do projeto de Ciência de Dados.pdf
+└── dados/                            # Gerado localmente — NÃO versionado
     ├── 1-bronze/
-    │   ├── SIM/
-    │   │   ├── dbc/YYYY/            # Arquivos brutos do DataSUS por ano
-    │   │   └── csv/YYYY/            # Declarações de óbito convertidas para CSV
-    │   ├── cid_10_datasus_v2008/    # CID-10 via HTTP (--fonte v2008, padrão)
-    │   │   ├── zip/                 # ZIP original baixado
-    │   │   └── csv/                 # 6 CSVs normalizados (utf-8-sig, separador vírgula)
-    │   ├── cid_10_datasus_ftp/      # CID-10 via FTP (--fonte ftp)
-    │   │   ├── dbf/                 # DBFs originais baixados do FTP
-    │   │   └── csv/                 # DBFs convertidos para CSV
-    │   ├── ibge_dados_municipios/
-    │   │   ├── json/                # Resposta bruta da API IBGE
-    │   │   └── csv/                 # Cadastro de municípios em CSV
-    │   └── ibge_populacao/
-    │       ├── zip/YYYY/            # ZIPs baixados do FTP
-    │       ├── dbf/YYYY/            # DBFs extraídos dos ZIPs
-    │       └── csv/YYYY/            # Projeções populacionais em CSV
-    ├── 2-prata/                     # Dados limpos e integrados (próximas semanas)
-    └── 3-ouro/                      # Dataset analítico consolidado (próximas semanas)
+    ├── 2-prata/
+    └── 3-ouro/
 ```
 
-## Pré-requisitos
-
-Python 3.11+ instalado e disponível no PATH.
-
-**macOS / Linux**
-```bash
-pip3 install pandas pyreaddbc dbfread
-```
-
-**Windows** (Prompt de Comando ou PowerShell)
-```bat
-pip install pandas pyreaddbc dbfread
-```
-
-> No Windows, `python` e `pip` já apontam para o Python 3 instalado. No macOS/Linux, use sempre `python3` e `pip3` para evitar conflito com o Python 2 do sistema.
-
-## Execução dos Scripts de Coleta
-
-### Carregar todos os datasets de uma vez com exec.py
-
-O `exec.py` executa os quatro scripts da camada Bronze em sequência (DataSUS SIM → CID-10 → municípios IBGE → população IBGE) e repassa automaticamente cada argumento apenas aos scripts que o aceitam:
-
-| Argumento | datasus_dados.py | datasus_cid10.py | ibge_populacao.py | ibge_dados_municipios.py |
-|-----------|:---:|:---:|:---:|:---:|
-| *--anos* | ✓ | — | ✓ | — |
-| *--estados* | ✓ | — | — | ✓ |
-| *--apenas-converter* | ✓ | ✓ | ✓ | — |
-| *--validacao* | ✓ | ✓ | ✓ | — |
-
-> O argumento `--fonte` do `datasus_cid10.py` não é repassado pelo `exec.py`. O orquestrador usa o padrão do script, que é **baixar as duas fontes** (`v2008` e `ftp`). Para restringir a uma só, execute o script diretamente com `--fonte v2008` ou `--fonte ftp`.
-
-**macOS / Linux**
-```bash
-# Carga completa (todos os estados, 2010–2024)
-python3 scripts/exec.py
-
-# Limitar anos e estados (útil para testes)
-python3 scripts/exec.py --anos 2022 2023 --estados PB PE CE RN
-
-# Apenas converter arquivos já baixados, sem novo download
-python3 scripts/exec.py --apenas-converter
-
-# Verificar consistência dos layouts de coluna
-python3 scripts/exec.py --validacao
-```
-
-**Windows** (Prompt de Comando ou PowerShell)
-```bat
-python scripts/exec.py
-python scripts/exec.py --anos 2022 2023 --estados PB PE CE RN
-python scripts/exec.py --apenas-converter
-python scripts/exec.py --validacao
-```
-
-> O download do SIM para todos os estados e anos (2010–2024) pode demorar bastante, pois são ~375 arquivos DBC via FTP. Use `--estados` e `--anos` para reduzir o escopo durante testes.
-
-### 1. DataSUS — Mortalidade (SIM)
-
-**macOS / Linux**
-```bash
-# Todos os estados, 2010–2024 (padrão)
-python3 scripts/1-bronze/datasus_dados.py --sistema SIM
-
-# Filtrar estados e anos específicos
-python3 scripts/1-bronze/datasus_dados.py --sistema SIM --anos 2020 2021 2022 --estados SP RJ MG PB
-
-# Apenas converter DBCs já baixados (sem novo download)
-python3 scripts/1-bronze/datasus_dados.py --sistema SIM --apenas-converter
-
-# Verificar consistência dos layouts de coluna entre os CSVs gerados
-python3 scripts/1-bronze/datasus_dados.py --sistema SIM --validacao
-
-# Listar todos os sistemas disponíveis no script
-python3 scripts/1-bronze/datasus_dados.py --listar-sistemas
-```
-
-**Windows**
-```bat
-python scripts/1-bronze/datasus_dados.py --sistema SIM
-python scripts/1-bronze/datasus_dados.py --sistema SIM --anos 2020 2021 2022 --estados SP RJ MG PB
-python scripts/1-bronze/datasus_dados.py --sistema SIM --apenas-converter
-python scripts/1-bronze/datasus_dados.py --sistema SIM --validacao
-python scripts/1-bronze/datasus_dados.py --listar-sistemas
-```
-
-Saída: `dados/1-bronze/SIM/dbc/YYYY/DO{UF}{YYYY}.dbc` → `dados/1-bronze/SIM/csv/YYYY/DO{UF}{YYYY}.csv`
-
-### 2. DataSUS — Tabelas de Referência CID-10
-
-O script `datasus_cid10.py` suporta duas fontes independentes, selecionáveis pelo parâmetro `--fonte`. Cada fonte grava em uma pasta separada e pode ser usada isoladamente ou em conjunto.
-
-#### Parâmetro `--fonte`
-
-| Valor | Fonte | Pasta de saída | Arquivos gerados |
-|-------|-------|----------------|------------------|
-| `v2008` | HTTP — `www2.datasus.gov.br` | `dados/1-bronze/cid_10_datasus_v2008/` | 6 CSVs: capítulos, grupos, categorias, subcategorias, CID-O categorias, CID-O grupos |
-| `ftp` | FTP — `ftp.datasus.gov.br` | `dados/1-bronze/cid_10_datasus_ftp/` | 2 CSVs: CID10 (categorias+subcategorias) e CIDCAP10 (capítulos) |
-
-**Padrão (sem `--fonte`):** baixa as duas fontes em sequência.
-
-**macOS / Linux**
-```bash
-# Ambas as fontes — padrão, sem precisar passar --fonte
-python3 scripts/1-bronze/datasus_cid10.py
-
-# Restringir a uma só fonte
-python3 scripts/1-bronze/datasus_cid10.py --fonte v2008
-python3 scripts/1-bronze/datasus_cid10.py --fonte ftp
-
-# Sem novo download — reprocessa a partir dos arquivos já baixados
-python3 scripts/1-bronze/datasus_cid10.py --apenas-converter
-python3 scripts/1-bronze/datasus_cid10.py --fonte ftp --apenas-converter
-
-# Verificar colunas dos CSVs gerados
-python3 scripts/1-bronze/datasus_cid10.py --validacao
-python3 scripts/1-bronze/datasus_cid10.py --fonte ftp --validacao
-python3 scripts/1-bronze/datasus_cid10.py --fonte v2008 ftp --validacao
-```
-
-**Windows**
-```bat
-python scripts/1-bronze/datasus_cid10.py
-python scripts/1-bronze/datasus_cid10.py --fonte v2008
-python scripts/1-bronze/datasus_cid10.py --fonte ftp
-python scripts/1-bronze/datasus_cid10.py --apenas-converter
-python scripts/1-bronze/datasus_cid10.py --fonte ftp --apenas-converter
-python scripts/1-bronze/datasus_cid10.py --fonte v2008 ftp --validacao
-```
-
-#### Conteúdo da fonte `v2008`
-
-Saída em `dados/1-bronze/cid_10_datasus_v2008/csv/`:
-
-| Arquivo | Linhas | Colunas |
-|---------|-------:|---------|
-| `CID-10-CAPITULOS.csv` | 22 | NUMCAP, CATINIC, CATFIM, DESCRICAO, DESCRABREV |
-| `CID-10-GRUPOS.csv` | 275 | CATINIC, CATFIM, DESCRICAO, DESCRABREV |
-| `CID-10-CATEGORIAS.csv` | 2.045 | CAT, CLASSIF, DESCRICAO, DESCRABREV, REFER, EXCLUIDOS |
-| `CID-10-SUBCATEGORIAS.csv` | 12.451 | SUBCAT, CLASSIF, RESTRSEXO, CAUSAOBITO, DESCRICAO, DESCRABREV, REFER, EXCLUIDOS |
-| `CID-O-CATEGORIAS.csv` | 816 | CAT, DESCRICAO, REFER |
-| `CID-O-GRUPOS.csv` | 63 | CATINIC, CATFIM, DESCRICAO, REFER |
-
-#### Conteúdo da fonte `ftp`
-
-Saída em `dados/1-bronze/cid_10_datasus_ftp/csv/`:
-
-| Arquivo | Linhas | Colunas |
-|---------|-------:|---------|
-| `CID10.csv` | 14.257 | CID10, OPC, CAT, SUBCAT, DESCR, RESTRSEXO |
-| `CIDCAP10.csv` | 22 | DESCRICAO, CAUSAS |
-
-### 3. IBGE — Cadastro de Municípios (API REST)
-
-**macOS / Linux**
-```bash
-python3 scripts/1-bronze/ibge_dados_municipios.py                       # todos os municípios (5.570)
-python3 scripts/1-bronze/ibge_dados_municipios.py --estados PB PE CE RN # filtrar por estado(s)
-```
-
-**Windows**
-```bat
-python scripts/1-bronze/ibge_dados_municipios.py
-python scripts/1-bronze/ibge_dados_municipios.py --estados PB PE CE RN
-```
-
-Saída: `dados/1-bronze/ibge_dados_municipios/json/municipios.json` e `dados/1-bronze/ibge_dados_municipios/csv/municipios.csv`
-
-### 4. IBGE — Projeções Populacionais (POPSVS)
-
-**macOS / Linux**
-```bash
-python3 scripts/1-bronze/ibge_populacao.py                        # todos os anos, 2010–2024 (padrão)
-python3 scripts/1-bronze/ibge_populacao.py --anos 2020 2021 2022  # anos específicos
-python3 scripts/1-bronze/ibge_populacao.py --apenas-converter     # sem novo download
-python3 scripts/1-bronze/ibge_populacao.py --validacao            # verificar consistência
-```
-
-**Windows**
-```bat
-python scripts/1-bronze/ibge_populacao.py
-python scripts/1-bronze/ibge_populacao.py --anos 2020 2021 2022
-python scripts/1-bronze/ibge_populacao.py --apenas-converter
-python scripts/1-bronze/ibge_populacao.py --validacao
-```
-
-Saída: `dados/1-bronze/ibge_populacao/csv/YYYY/POP{YY}.csv`
+---
 
 ## Cronograma
 
-| Semana | Período | Etapa | Marco |
-|--------|---------|-------|-------|
-| 1 | 02/06–08/06 | Seleção e coleta das fontes | Repositório + scripts de coleta ✓ |
-| 2–3 | 09/06–22/06 | Preparação e integração dos dados | Datasets limpos + dataset consolidado + dicionário de dados |
-| 4 | 23/06–29/06 | Análise e modelagem | Notebook de EDA, clustering e visualizações |
-| 5 | 30/06–06/07 | Redação e fechamento | Relatório final + notebook reproduzível |
-| 6 | 07/07–14/07 | Apresentação | Slides e apresentação oral |
+| Semana | Período | Etapa | Marco | Status |
+|--------|---------|-------|-------|--------|
+| 1 | 02/06–08/06 | Seleção e coleta das fontes | Repositório + coleta Bronze implementada | ✅ |
+| 2–3 | 09/06–22/06 | Preparação, integração e consolidação | Prata + Ouro + dicionário de dados | ✅ |
+| 4 | 23/06–29/06 | Análise e modelagem | EDA, clustering e visualizações | 🔜 |
+| 5 | 30/06–06/07 | Redação e fechamento | Relatório final + notebook reproduzível | 🔜 |
+| 6 | 07/07–14/07 | Apresentação | Slides e apresentação oral | 🔜 |
 
-**Entrega final:** 06/07/2026 · **Apresentação:** 07/07 ou 14/07/2026
+**Marcos-chave:**
+
+| Data | Marco | Status |
+|------|-------|--------|
+| 22/06/2026 | Dados limpos e prontos para integração | ✅ |
+| 22/06/2026 | Dataset final consolidado e dicionário fechado | ✅ |
+| 29/06/2026 | Análises e visualizações concluídas | 🔜 |
+| 06/07/2026 | Entrega do relatório final, notebook e artefatos | 🔜 |
+| 07/07 ou 14/07/2026 | Apresentação do projeto | 🔜 |
