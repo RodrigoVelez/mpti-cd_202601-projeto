@@ -268,6 +268,14 @@ Proporção de óbitos por grupo de DCNT (Cardiovascular, Neoplasia, Respiratór
 
 ![Breakdown por Grupo de DCNT](docs/imagens/semana4/eda_breakdown_dcnt.png)
 
+#### Célula 4.6 — Correlações entre Indicadores Municipais
+
+Matriz de correlação (Pearson e Spearman) entre os indicadores que alimentam o clustering — taxa média, tendência temporal, porte populacional (log) e proporções por grupo de DCNT. Além de cumprir a etapa de **correlações** da análise exploratória, o heatmap diagnostica a **redundância composicional** das quatro proporções (que somam ≈1): a mais colinear (**`prop_cardiovascular`**, |correlação| média 0,46 com as demais) é removida do conjunto de features na etapa de modelagem.
+
+- **Saída:** `dados/3-ouro/eda_correlacao.png`
+
+![Correlações entre Indicadores Municipais](docs/imagens/semana4/eda_correlacao.png)
+
 ---
 
 ### Clustering — Identificação de Perfis Municipais
@@ -286,12 +294,14 @@ Constrói uma linha por município com features derivadas do histórico completo
 | `prop_respiratoria` | Proporção dos óbitos DCNT por doenças respiratórias |
 | `prop_diabetes` | Proporção dos óbitos DCNT por diabetes |
 
-Municípios com menos de 3 exercícios de dados têm `tendencia = NaN`, imputado pela mediana na célula seguinte.
+Municípios com menos de 3 exercícios de dados têm `tendencia = NaN`, imputado pela mediana na célula seguinte. Das 7 features, o clustering usa **6**: `prop_cardiovascular` é descartada na 5.2 por redundância composicional (ver Célula 4.6).
 
 #### Célula 5.2 — Normalização e Determinação do k
 
 Pré-processa as features e encontra o número ótimo de clusters usando dois critérios complementares:
 
+- **Filtro de estabilidade:** municípios de porte muito pequeno têm taxas voláteis (denominador populacional baixo). Aplica-se `log_pop_media ≥ 4,0` (~10 mil hab.), reduzindo de **5.570 → 3.103 municípios** (2.467 removidos). Os excluídos ficam sem rótulo e aparecem em cinza no mapa.
+- **Redução de features:** remove `prop_cardiovascular` (a proporção mais colinear, diagnosticada na 4.6), deixando **6 features** — evita a redundância das proporções composicionais.
 - **Imputação:** `SimpleImputer(strategy='median')` para os raros NaN
 - **Normalização:** `RobustScaler` (usa mediana e IQR — robusto a outliers, adequado para dados municipais heterogêneos)
 - **Elbow Method:** plota a inércia do K-Means para k de 2 a 10; o cotovelo é detectado automaticamente pela 2ª derivada da inércia
@@ -316,6 +326,36 @@ Aplica o K-Means com `K_FINAL = best_k` e analisa os perfis resultantes:
 
 ![Projeção PCA 2D dos Clusters Municipais](docs/imagens/semana4/clustering_pca.png)
 
+**Resultado (k = 2, Silhouette ≈ 0,25, 53,3% da variância nos 2 PCs):** entre k de 2 a 10, o Silhouette favorece k = 2 de forma clara (0,25 contra ≤ 0,17 para k ≥ 3). O agrupamento divide os 3.103 municípios estáveis em dois perfis ao longo do **gradiente dominante** de mortalidade:
+
+| Cluster | Municípios | Predomínio regional | Perfil |
+|---------|-----------|---------------------|--------|
+| **0** | 2.192 | Norte / Nordeste | Municípios menores (~21 mil hab.), taxa DCNT mais baixa (~203/100k), maior peso relativo de **diabetes** |
+| **1** | 911 | Sul / Sudeste | Municípios maiores (~58 mil hab.), taxa DCNT alta (~420/100k) com tendência de alta mais forte, perfil de **neoplasia/respiratória** |
+
+A separação reflete o gradiente de **transição demográfica e epidemiológica** entre as regiões. O filtro de estabilidade e a remoção da proporção redundante elevaram o Silhouette de 0,20 para 0,25 frente à versão anterior.
+
+> **Limitação:** um Silhouette de 0,25 indica **estrutura fraca** — a projeção PCA mostra que os municípios formam um *continuum* cortado em dois, e não grupos naturalmente separados. O agrupamento deve ser lido como uma **partição exploratória do gradiente dominante**, não como classes discretas. A Célula 5.4 testa formalmente outros algoritmos para confirmar essa escolha.
+
+#### Célula 5.4 — Avaliação de Modelos Alternativos
+
+Para validar a escolha do K-Means, três paradigmas alternativos são ajustados sobre a mesma matriz de features e comparados por **três métricas internas** (Silhouette ↑, Davies-Bouldin ↓, Calinski-Harabasz ↑). O melhor modelo de partição limpa é **adotado como final** e alimenta o mapa e o perfil.
+
+| Modelo | k | Silhouette | Davies-Bouldin | Calinski-Harabasz |
+|--------|---|-----------|----------------|-------------------|
+| **K-Means** | 2 | **0,250** | **1,75** | **791** |
+| Aglomerativo (Ward) | 2 | 0,183 | 2,07 | 609 |
+| GMM | 5 | 0,083 | 2,36 | 342 |
+| DBSCAN | 1 | n/a | — | ruído 4% |
+
+**Conclusão:** o **K-Means (k=2) vence nas três métricas**. Mais revelador: o **DBSCAN não encontra agrupamento por densidade** (colapsa em 1 cluster) e o **GMM** se dispersa em componentes sobrepostos (Silhouette 0,08) — evidência forte de que os municípios formam um **gradiente contínuo**, não grupos discretos. O dendrograma (Ward) confirma: o maior salto de distância ocorre no corte em 2 grupos. A escolha do K-Means k=2 fica, assim, rigorosamente justificada.
+
+- **Saídas:** `dados/3-ouro/clustering_comparacao.png`, `dados/3-ouro/clustering_dendrograma.png`
+
+![Comparação de Modelos — Projeção PCA 2D](docs/imagens/semana4/clustering_comparacao.png)
+
+![Dendrograma Hierárquico (Ward)](docs/imagens/semana4/clustering_dendrograma.png)
+
 ---
 
 ### Visualizações Finais
@@ -338,7 +378,7 @@ Municípios sem dados suficientes para clustering aparecem em cinza claro. A leg
 
 #### Célula 6.2 — Perfil Comparativo dos Clusters
 
-Gráfico de barras agrupadas que compara os clusters em todas as 7 features. Cada barra mostra o valor do cluster como **percentual do cluster líder** naquela dimensão (o maior sempre aparece em 100%), garantindo que todos os clusters sejam visíveis mesmo quando as diferenças absolutas são grandes. O percentual é anotado sobre cada barra.
+Gráfico de barras agrupadas que compara os clusters nas 6 features usadas no modelo. Cada barra mostra o valor do cluster como **percentual do cluster líder** naquela dimensão (o maior sempre aparece em 100%), garantindo que todos os clusters sejam visíveis mesmo quando as diferenças absolutas são grandes. O percentual é anotado sobre cada barra.
 
 - **Saída:** `dados/3-ouro/clustering_perfil.png`
 
@@ -407,8 +447,11 @@ Granularidade: **uma linha por município** (média histórica 2010–2024).
 │           ├── eda_ranking_municipios.png
 │           ├── eda_temporal.png
 │           ├── eda_breakdown_dcnt.png
+│           ├── eda_correlacao.png
 │           ├── clustering_elbow.png
 │           ├── clustering_pca.png
+│           ├── clustering_comparacao.png
+│           ├── clustering_dendrograma.png
 │           ├── clustering_perfil.png
 │           └── mapa_dcnt_clusters.png
 └── dados/                            # Gerado localmente — NÃO versionado
@@ -425,8 +468,11 @@ Granularidade: **uma linha por município** (média histórica 2010–2024).
     │   ├── eda_ranking_municipios.png           ← Semana 4
     │   ├── eda_temporal.png                     ← Semana 4
     │   ├── eda_breakdown_dcnt.png               ← Semana 4
+    │   ├── eda_correlacao.png                   ← Semana 4
     │   ├── clustering_elbow.png                 ← Semana 4
     │   ├── clustering_pca.png                   ← Semana 4
+    │   ├── clustering_comparacao.png            ← Semana 4
+    │   ├── clustering_dendrograma.png           ← Semana 4
     │   ├── clustering_perfil.png                ← Semana 4
     │   └── mapa_dcnt_clusters.png               ← Semana 4
     └── shapefiles/
