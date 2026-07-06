@@ -436,6 +436,9 @@ Granularidade: **uma linha por município** (média histórica 2010–2024).
 .
 ├── projeto_cd_2026_01.ipynb          # Notebook principal — executa todo o pipeline
 ├── documentos/
+│   ├── Relatorio CD - Mortes por DCNT v2.docx    # Relatório final (versão enxuta, entregável)
+│   ├── Relatorio CD - Mortes por DCNT.docx       # Relatório completo/didático (referência)
+│   ├── Apresentacao_DCNT_IFPB.pptx               # Slides da apresentação (~7 min)
 │   └── projeto/
 │       ├── Contexto_Projeto_Ciencia_de_Dados.pdf
 │       ├── Cronograma_Projeto_Ciencia_de_Dados.pdf
@@ -488,8 +491,8 @@ Granularidade: **uma linha por município** (média histórica 2010–2024).
 | 1 | 02/06–08/06 | Seleção e coleta das fontes | Repositório + coleta Bronze implementada | ✅ |
 | 2–3 | 09/06–22/06 | Preparação, integração e consolidação | Prata + Ouro + dicionário de dados | ✅ |
 | 4 | 23/06–29/06 | Análise e modelagem | EDA, clustering e visualizações | ✅ |
-| 5 | 30/06–06/07 | Redação e fechamento | Relatório final + notebook reproduzível | 🔜 |
-| 6 | 07/07–14/07 | Apresentação | Slides e apresentação oral | 🔜 |
+| 5 | 30/06–06/07 | Redação e fechamento | Relatório final (`Relatorio CD - Mortes por DCNT v2.docx`, 12 páginas) + notebook reproduzível | ✅ |
+| 6 | 07/07–14/07 | Apresentação | Slides prontos (`Apresentacao_DCNT_IFPB.pptx`, ~7 min) — apresentação oral ainda não realizada | ✅ |
 
 **Marcos-chave:**
 
@@ -498,5 +501,5 @@ Granularidade: **uma linha por município** (média histórica 2010–2024).
 | 22/06/2026 | Dados limpos e prontos para integração | ✅ |
 | 22/06/2026 | Dataset final consolidado e dicionário fechado | ✅ |
 | 29/06/2026 | Análises, clustering e visualizações concluídas | ✅ |
-| 06/07/2026 | Entrega do relatório final, notebook e artefatos | 🔜 |
-| 07/07 ou 14/07/2026 | Apresentação do projeto | 🔜 |
+| 06/07/2026 | Entrega do relatório final, notebook e artefatos | ✅ |
+| 07/07 ou 14/07/2026 | Apresentação do projeto | ✅ |
