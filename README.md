@@ -306,7 +306,7 @@ Pré-processa as features e encontra o número ótimo de clusters usando dois cr
 - **Normalização:** `RobustScaler` (usa mediana e IQR — robusto a outliers, adequado para dados municipais heterogêneos)
 - **Elbow Method:** plota a inércia do K-Means para k de 2 a 10; o cotovelo é detectado automaticamente pela 2ª derivada da inércia
 - **Silhouette Score:** calculado para cada k com amostragem de 5.000 pontos; o k com maior score é adotado como `best_k`
-- **Convergência:** o notebook imprime explicitamente se os dois critérios convergem para o mesmo k ou divergem
+- **Convergência:** o notebook imprime explicitamente se os dois critérios convergem para o mesmo k ou divergem. Na execução atual, os critérios **divergem**: o cotovelo (2ª derivada da inércia) aponta k = 3, enquanto o Silhouette é máximo em k = 2 (0,2523) e cai para ≤ 0,164 a partir de k = 3. A equipe adota o Silhouette como critério principal, por medir diretamente separação e coesão dos grupos.
 
 - **Saída:** `dados/3-ouro/clustering_elbow.png`
 
@@ -326,14 +326,14 @@ Aplica o K-Means com `K_FINAL = best_k` e analisa os perfis resultantes:
 
 ![Projeção PCA 2D dos Clusters Municipais](docs/imagens/semana4/clustering_pca.png)
 
-**Resultado (k = 2, Silhouette ≈ 0,25, 53,3% da variância nos 2 PCs):** entre k de 2 a 10, o Silhouette favorece k = 2 de forma clara (0,25 contra ≤ 0,17 para k ≥ 3). O agrupamento divide os 3.103 municípios estáveis em dois perfis ao longo do **gradiente dominante** de mortalidade:
+**Resultado (k = 2, Silhouette = 0,2523, 53,1% da variância nos 2 PCs):** entre k de 2 a 10, o Silhouette favorece k = 2 de forma clara (0,2523 contra ≤ 0,164 para k ≥ 3). O agrupamento divide os 3.103 municípios estáveis em dois perfis ao longo do **gradiente dominante** de mortalidade:
 
 | Cluster | Municípios | Predomínio regional | Perfil |
 |---------|-----------|---------------------|--------|
-| **0** | 2.192 | Norte / Nordeste | Municípios menores (~21 mil hab.), taxa DCNT mais baixa (~203/100k), maior peso relativo de **diabetes** |
-| **1** | 911 | Sul / Sudeste | Municípios maiores (~58 mil hab.), taxa DCNT alta (~420/100k) com tendência de alta mais forte, perfil de **neoplasia/respiratória** |
+| **0** | 2.193 (60% N/NE) | Norte / Nordeste | Municípios menores (log₁₀pop médio 4,32, ≈ 21 mil hab.), taxa DCNT mais baixa (202,1/100k), maior peso relativo de **diabetes** (0,123 vs. 0,092) |
+| **1** | 910 (75% S/SE) | Sul / Sudeste | Municípios maiores (log₁₀pop médio 4,76, ≈ 58 mil hab.), taxa DCNT alta (420,4/100k), tendência de alta mais forte (slope 6,43 vs. 4,10), perfil de **neoplasia/respiratória** |
 
-A separação reflete o gradiente de **transição demográfica e epidemiológica** entre as regiões. O filtro de estabilidade e a remoção da proporção redundante elevaram o Silhouette de 0,20 para 0,25 frente à versão anterior.
+A separação reflete o gradiente de **transição demográfica e epidemiológica** entre as regiões. O filtro de estabilidade e a remoção da proporção redundante elevaram o Silhouette frente à versão sem filtro (todos os 5.570 municípios, sem exclusão dos de baixo porte).
 
 > **Limitação:** um Silhouette de 0,25 indica **estrutura fraca** — a projeção PCA mostra que os municípios formam um *continuum* cortado em dois, e não grupos naturalmente separados. O agrupamento deve ser lido como uma **partição exploratória do gradiente dominante**, não como classes discretas. A Célula 5.4 testa formalmente outros algoritmos para confirmar essa escolha.
 
@@ -343,10 +343,10 @@ Para validar a escolha do K-Means, três paradigmas alternativos são ajustados 
 
 | Modelo | k | Silhouette | Davies-Bouldin | Calinski-Harabasz |
 |--------|---|-----------|----------------|-------------------|
-| **K-Means** | 2 | **0,250** | **1,75** | **791** |
-| Aglomerativo (Ward) | 2 | 0,183 | 2,07 | 609 |
-| GMM | 5 | 0,083 | 2,36 | 342 |
-| DBSCAN | 1 | n/a | — | ruído 4% |
+| **K-Means** | 2 | **0,252** | **1,74** | **800,1** |
+| Aglomerativo (Ward) | 2 | 0,188 | 2,10 | 593,9 |
+| GMM | 5 | 0,099 | 2,13 | 403,3 |
+| DBSCAN | 1 | n/a | — | ruído 4,2% (eps=1,18) |
 
 **Conclusão:** o **K-Means (k=2) vence nas três métricas**. Mais revelador: o **DBSCAN não encontra agrupamento por densidade** (colapsa em 1 cluster) e o **GMM** se dispersa em componentes sobrepostos (Silhouette 0,08) — evidência forte de que os municípios formam um **gradiente contínuo**, não grupos discretos. O dendrograma (Ward) confirma: o maior salto de distância ocorre no corte em 2 grupos. A escolha do K-Means k=2 fica, assim, rigorosamente justificada.
 
